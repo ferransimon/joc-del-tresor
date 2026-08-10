@@ -389,10 +389,12 @@ function getCoordinateRanges(coordStr, minBound, maxBound) {
                 ranges.push({ min, max });
             }
         } else if (decPart.length < 6) {
-            // Con decimales incompletos: generar múltiples rangos
-            // ej. "41.4" -> genera 41.40-41.41, 41.41-41.42, ..., 41.49-41.50
+            // Con decimales incompletos: generar múltiples rangos, uno por cada
+            // posible valor del SIGUIENTE dígito, subdividiendo la celda actual.
+            // ej. "41.4" (precision=1, celda conocida = 0.1°) -> genera 10
+            // subceldas de 0.01° cada una: 41.40-41.41, 41.41-41.42, ..., 41.49-41.50
             const precision = decPart.length;
-            const step = Math.pow(10, -precision);
+            const step = Math.pow(10, -(precision + 1)); // paso del SIGUIENTE dígito
             const base = parseFloat(coordStr);
 
             // Generar 10 rangos (uno por cada dígito posible en la siguiente posición)
