@@ -29,12 +29,16 @@ const catalunyaBorder = L.rectangle([
 // Grupo de capas para las áreas posibles
 let areasLayer = L.layerGroup().addTo(map);
 
+// Guarda quants dígits decimals s'han pogut aprofitar en l'últim càlcul (per mostrar-ho a l'estat)
+let precisionInfo = null;
+
 // Referencias a los elementos del DOM
 const digitInputs = document.querySelectorAll('.digit-input');
 const clearBtn = document.getElementById('clear-btn');
 const latStatus = document.getElementById('lat-status');
 const lngStatus = document.getElementById('lng-status');
 const areasCount = document.getElementById('areas-count');
+const precisionStatus = document.getElementById('precision-status');
 
 // Estado actual - arrays de 8 dígitos [XX.XXXXXX]
 const latDigits = new Array(8).fill('');
@@ -227,7 +231,9 @@ function clearAll() {
     });
 
     areasLayer.clearLayers();
+    precisionInfo = null;
     updateStatus();
+    updatePrecisionStatus();
     map.setView([41.7, 1.8], 8);
 
     // Focus al primer input de latitud
@@ -262,6 +268,18 @@ function updateStatus() {
     lngStatus.textContent = lngStr || '-';
 }
 
+function updatePrecisionStatus() {
+    if (!precisionStatus) return;
+
+    if (!precisionInfo) {
+        precisionStatus.textContent = '-';
+        return;
+    }
+
+    const { lLat, lLng } = precisionInfo;
+    precisionStatus.textContent = `Lat: ${lLat}/6 · Lng: ${lLng}/6 dígits decimals`;
+}
+
 function updateMap() {
     updateStatus();
     areasLayer.clearLayers();
@@ -274,8 +292,9 @@ function updateMap() {
         return;
     }
 
-    const possibleAreas = calculatePossibleAreas(latStr, lngStr);
+    const possibleAreas = calculatePossibleAreas();
     areasCount.textContent = possibleAreas.length;
+    updatePrecisionStatus();
 
     possibleAreas.forEach(area => {
         drawArea(area);
@@ -290,29 +309,126 @@ function updateMap() {
     }
 }
 
-function calculatePossibleAreas(latStr, lngStr) {
+// Nombre màxim de rectangles a dibuixar simultàniament. Cada dígit desconegut que
+// "ramifiquem" multiplica per 10 el nombre de rectangles, i com que ho fem en 2D
+// (latitud x longitud), el cost puja molt de pressa. Aquest pressupost evita petar
+// el navegador quan hi ha molts dígits per endevinar alhora.
+const MAX_TOTAL_AREAS = 400;
+
+// Calcula, per a un eix (lat o lng), quants dígits decimals CONSECUTIUS des de l'inici
+// es poden "resoldre" (coneguts directament o ramificats) sense superar el pressupost
+// combinat entre els dos eixos. Els dígits coneguts són sempre gratuïts (no consumeixen
+// pressupost); només costen els dígits que cal endevinar (x10 cada un).
+// Retorna { lLat, lLng }: quants dels 6 dígits decimals de cada eix queden "resolts".
+function computeResolvedWindow(latDec, lngDec, budget) {
+    let lLat = 0;
+    let lLng = 0;
+    let total = 1;
+
+    while (lLat < 6 || lLng < 6) {
+        const costLat = lLat < 6 ? (latDec[lLat] !== '' ? 1 : 10) : null;
+        const costLng = lLng < 6 ? (lngDec[lLng] !== '' ? 1 : 10) : null;
+
+        // Prioritat màxima: qualsevol extensió "gratuïta" (dígit ja conegut) s'aplica sempre.
+        if (costLat === 1) { lLat++; continue; }
+        if (costLng === 1) { lLng++; continue; }
+
+        // A partir d'aquí, l'única extensió possible costa x10 (cal ramificar un dígit desconegut).
+        const candidates = [];
+        if (costLat === 10) candidates.push('lat');
+        if (costLng === 10) candidates.push('lng');
+        if (candidates.length === 0) break; // tots dos eixos ja estan complets
+
+        // Preferim ampliar primer l'eix amb menys dígits resolts, per repartir la precisió
+        // de forma equilibrada entre latitud i longitud.
+        candidates.sort((a, b) => (a === 'lat' ? lLat : lLng) - (b === 'lat' ? lLat : lLng));
+
+        let extended = false;
+        for (const axis of candidates) {
+            if (total * 10 <= budget) {
+                total *= 10;
+                if (axis === 'lat') lLat++; else lLng++;
+                extended = true;
+                break;
+            }
+        }
+        if (!extended) break; // no queda pressupost per cap dels dos eixos
+    }
+
+    return { lLat, lLng };
+}
+
+// Genera els rangs (cel·les) possibles per a un eix, donada la part entera (coneguda)
+// i la part decimal (array de 6 posicions, '' = desconegut), fins a "window" dígits
+// decimals resolts. Els dígits desconeguts dins la finestra es ramifiquen en 0-9;
+// els dígits més enllà de la finestra queden sense determinar (cel·la més gran).
+function enumerateAxisRanges(intPart, decDigits, window, minBound, maxBound) {
+    const unknownPositions = [];
+    for (let i = 0; i < window; i++) {
+        if (decDigits[i] === '') unknownPositions.push(i);
+    }
+
+    const combosCount = Math.pow(10, unknownPositions.length);
+    const step = Math.pow(10, -window); // window=0 -> pas d'1 grau sencer
+    const ranges = [];
+
+    for (let combo = 0; combo < combosCount; combo++) {
+        const filled = decDigits.slice(0, window);
+        let remainder = combo;
+        for (let k = unknownPositions.length - 1; k >= 0; k--) {
+            filled[unknownPositions[k]] = String(remainder % 10);
+            remainder = Math.floor(remainder / 10);
+        }
+
+        const decStr = filled.join('');
+        const base = parseFloat(intPart + (decStr ? '.' + decStr : ''));
+        const rangeMin = Math.max(base, minBound);
+        const rangeMax = Math.min(base + step, maxBound);
+        if (rangeMin < rangeMax) {
+            ranges.push({ min: rangeMin, max: rangeMax });
+        }
+    }
+
+    return ranges;
+}
+
+function calculatePossibleAreas() {
     const areas = [];
 
-    // Determinar rangos de latitud
-    let latRanges = [];
-    if (latStr) {
-        latRanges = getCoordinateRanges(latStr, CATALUNYA_BOUNDS.south, CATALUNYA_BOUNDS.north);
+    const latIntKnown = latDigits[0] !== '' && latDigits[1] !== '';
+    const lngIntKnown = lngDigits[0] !== '' && lngDigits[1] !== '';
+
+    let latRanges, lngRanges;
+
+    if (latIntKnown && lngIntKnown) {
+        const latIntPart = latDigits[0] + latDigits[1];
+        const lngIntPart = lngDigits[0] + lngDigits[1];
+        const latDec = latDigits.slice(2);
+        const lngDec = lngDigits.slice(2);
+
+        const { lLat, lLng } = computeResolvedWindow(latDec, lngDec, MAX_TOTAL_AREAS);
+        precisionInfo = { lLat, lLng }; // per mostrar-ho a la interfície
+
+        latRanges = enumerateAxisRanges(latIntPart, latDec, lLat, CATALUNYA_BOUNDS.south, CATALUNYA_BOUNDS.north);
+        lngRanges = enumerateAxisRanges(lngIntPart, lngDec, lLng, CATALUNYA_BOUNDS.west, CATALUNYA_BOUNDS.east);
     } else {
-        latRanges = [{ min: CATALUNYA_BOUNDS.south, max: CATALUNYA_BOUNDS.north }];
+        // Encara no coneixem els 2 primers dígits d'algun eix: mantenim el comportament
+        // original basat en el prefix conegut (divisió per graus sencers).
+        precisionInfo = null;
+        const latStr = getCoordString(latDigits);
+        const lngStr = getCoordString(lngDigits);
+
+        latRanges = latStr
+            ? getCoordinateRanges(latStr, CATALUNYA_BOUNDS.south, CATALUNYA_BOUNDS.north)
+            : [{ min: CATALUNYA_BOUNDS.south, max: CATALUNYA_BOUNDS.north }];
+        lngRanges = lngStr
+            ? getCoordinateRanges(lngStr, CATALUNYA_BOUNDS.west, CATALUNYA_BOUNDS.east)
+            : [{ min: CATALUNYA_BOUNDS.west, max: CATALUNYA_BOUNDS.east }];
     }
 
-    // Determinar rangos de longitud
-    let lngRanges = [];
-    if (lngStr) {
-        lngRanges = getCoordinateRanges(lngStr, CATALUNYA_BOUNDS.west, CATALUNYA_BOUNDS.east);
-    } else {
-        lngRanges = [{ min: CATALUNYA_BOUNDS.west, max: CATALUNYA_BOUNDS.east }];
-    }
-
-    // Combinar todos los rangos posibles
+    // Combinar tots els rangs possibles
     latRanges.forEach(latRange => {
         lngRanges.forEach(lngRange => {
-            // Verificar que el área esté dentro de Catalunya
             if (isWithinCatalunya(latRange, lngRange)) {
                 areas.push({
                     latMin: latRange.min,
@@ -380,15 +496,7 @@ function getCoordinateRanges(coordStr, minBound, maxBound) {
         const intPart = parts[0];
         const decPart = parts[1] || '';
 
-        if (decPart === '') {
-            // Solo punto, sin decimales: "41." -> 41.0 a 42.0
-            const base = parseFloat(intPart);
-            const min = Math.max(base, minBound);
-            const max = Math.min(base + 1, maxBound);
-            if (min < max) {
-                ranges.push({ min, max });
-            }
-        } else if (decPart.length < 6) {
+        if (decPart.length < 6) {
             // Con decimales incompletos: generar múltiples rangos, uno por cada
             // posible valor del SIGUIENTE dígito, subdividiendo la celda actual.
             // ej. "41.4" (precision=1, celda conocida = 0.1°) -> genera 10
