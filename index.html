@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joc del Tresor - Catalunya</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .coord-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .coord-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .coord-inputs {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
+        .digit-input {
+            width: 45px;
+            height: 45px;
+            padding: 0;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 1.5rem;
+            text-align: center;
+            background: white;
+            color: #2c3e50;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .digit-input::placeholder {
+            color: #bdc3c7;
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+
+        .digit-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            transform: scale(1.05);
+        }
+
+        .digit-input:focus::placeholder {
+            opacity: 0.3;
+        }
+
+        .digit-input.filled {
+            background: #d5f4e6;
+            border-color: #27ae60;
+        }
+
+        .decimal-point {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin: 0 0.2rem;
+        }
+
+        .coord-inputs span {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            margin-left: 0.3rem;
+        }
+
+        button {
+            padding: 0.5rem 1.5rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #c0392b;
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #5a6a7a;
+            border-radius: 26px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #e74c3c;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .info {
+            padding: 0.5rem;
+            background: #3498db;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        .leaflet-popup-content {
+            font-size: 0.9rem;
+        }
+
+        .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 250px;
+        }
+
+        .status h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .status p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin: 0.25rem 0;
+        }
+
+        .status .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏴‍☠️ Joc del Tresor - Catalunya</h1>
+        <div class="controls">
+            <div class="coord-group">
+                <label>Latitud (4X.XXXXXX) - Catalunya</label>
+                <div class="coord-inputs">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="0" maxlength="1" inputmode="numeric" placeholder="4">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="1" maxlength="1" inputmode="numeric" placeholder="0-2">
+                    <span class="decimal-point">.</span>
+                    <input type="text" class="digit-input" data-coord="lat" data-index="2" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="3" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="4" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="5" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="6" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="7" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span>°N</span>
+                </div>
+            </div>
+            <div class="coord-group">
+                <label>Longitud (0-3X.XXXXXX) - Catalunya</label>
+                <div class="coord-inputs">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="0" maxlength="1" inputmode="numeric" placeholder="0-3">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="1" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span class="decimal-point">.</span>
+                    <input type="text" class="digit-input" data-coord="lng" data-index="2" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="3" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="4" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="5" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="6" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="7" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span>°E</span>
+                </div>
+            </div>
+            <button id="clear-btn">Neteja</button>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="fine-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="fine-toggle" class="toggle-label">Coordenada fina</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="satellite-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="satellite-toggle" class="toggle-label">Vista satèl·lit</label>
+            </div>
+            <div class="info">
+                🔍 Joc del Tresor: Completa els dígits que coneguis i descobreix les zones possibles
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div class="status">
+        <h3>Estat</h3>
+        <p>Latitud: <span class="highlight" id="lat-status">-</span></p>
+        <p>Longitud: <span class="highlight" id="lng-status">-</span></p>
+        <p>Àrees possibles: <span class="highlight" id="areas-count">0</span></p>
+        <p>Precisió: <span class="highlight" id="precision-status">-</span></p>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js?v=20260817"></script>
+</body>
+</html>
