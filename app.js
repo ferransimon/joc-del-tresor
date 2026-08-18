@@ -893,3 +893,128 @@ setDefaultValues();
 
 // Focus al primer input buit al cargar
 document.querySelector('.digit-input[data-coord="lat"][data-index="0"]').focus();
+
+// Toggle del mapa del tresor - Overlay arrastrable y redimensionable
+const toggleMapBtn = document.getElementById('toggle-map-btn');
+const treasureOverlay = document.getElementById('treasure-map-overlay');
+const mapControls = document.getElementById('map-controls');
+const opacitySlider = document.getElementById('opacity-slider');
+const opacityValue = document.getElementById('opacity-value');
+const closeOverlayBtn = document.getElementById('close-overlay-btn');
+const resizeHandle = document.getElementById('resize-handle');
+const treasureImg = document.getElementById('treasure-img');
+
+let isDragging = false;
+let isResizing = false;
+let startX, startY, startLeft, startTop, startWidth, startHeight;
+
+if (toggleMapBtn && treasureOverlay) {
+    // Posición y tamaño inicial
+    treasureOverlay.style.left = '50%';
+    treasureOverlay.style.top = '50%';
+    treasureOverlay.style.width = '400px';
+    treasureOverlay.style.height = '400px';
+    treasureOverlay.style.transform = 'translate(-50%, -50%)';
+
+    toggleMapBtn.addEventListener('click', () => {
+        if (treasureOverlay.classList.contains('active')) {
+            treasureOverlay.classList.remove('active');
+            mapControls.classList.add('hidden');
+            toggleMapBtn.textContent = '🗺️ Mapa del Tresor';
+        } else {
+            treasureOverlay.classList.add('active');
+            mapControls.classList.remove('hidden');
+            toggleMapBtn.textContent = '✖ Tancar Overlay';
+        }
+    });
+
+    // Control de opacidad
+    if (opacitySlider && treasureImg) {
+        opacitySlider.addEventListener('input', (e) => {
+            const opacity = e.target.value;
+            treasureImg.style.opacity = opacity;
+            opacityValue.textContent = opacity;
+        });
+        // Opacidad inicial
+        treasureImg.style.opacity = '0.7';
+    }
+
+    // Cerrar overlay
+    if (closeOverlayBtn) {
+        closeOverlayBtn.addEventListener('click', () => {
+            treasureOverlay.classList.remove('active');
+            mapControls.classList.add('hidden');
+            toggleMapBtn.textContent = '🗺️ Mapa del Tresor';
+        });
+    }
+
+    // Drag functionality
+    treasureOverlay.addEventListener('mousedown', (e) => {
+        if (e.target === resizeHandle) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = treasureOverlay.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        treasureOverlay.style.transform = 'none';
+        e.preventDefault();
+    });
+
+    // Resize functionality
+    if (resizeHandle) {
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = treasureOverlay.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            treasureOverlay.style.left = (startLeft + dx) + 'px';
+            treasureOverlay.style.top = (startTop + dy) + 'px';
+        } else if (isResizing) {
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            const newSize = Math.max(100, Math.max(startWidth + dx, startHeight + dy));
+            treasureOverlay.style.width = newSize + 'px';
+            treasureOverlay.style.height = newSize + 'px';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        isResizing = false;
+    });
+}
+
+// Tooltip de coordenadas
+const coordTooltip = document.getElementById('coord-tooltip');
+const tooltipLat = document.getElementById('tooltip-lat');
+const tooltipLng = document.getElementById('tooltip-lng');
+
+if (coordTooltip && tooltipLat && tooltipLng) {
+    map.on('mousemove', (e) => {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+
+        tooltipLat.textContent = lat;
+        tooltipLng.textContent = lng;
+
+        coordTooltip.style.left = (e.originalEvent.pageX + 15) + 'px';
+        coordTooltip.style.top = (e.originalEvent.pageY + 15) + 'px';
+        coordTooltip.classList.add('visible');
+    });
+
+    map.on('mouseout', () => {
+        coordTooltip.classList.remove('visible');
+    });
+}

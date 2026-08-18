@@ -222,6 +222,129 @@
             color: #3498db;
             font-weight: bold;
         }
+
+        .treasure-map-overlay {
+            position: absolute;
+            z-index: 500;
+            cursor: move;
+            user-select: none;
+            display: none;
+        }
+
+        .treasure-map-overlay.active {
+            display: block;
+        }
+
+        .treasure-map-overlay img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border: 2px solid #e74c3c;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #e74c3c;
+            border: 2px solid white;
+            border-radius: 50%;
+            bottom: -10px;
+            right: -10px;
+            cursor: nwse-resize;
+            z-index: 501;
+        }
+
+        .map-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .map-controls.hidden {
+            display: none;
+        }
+
+        .map-controls button {
+            padding: 0.5rem 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .map-controls button:hover {
+            background: #c0392b;
+        }
+
+        .map-controls label {
+            font-size: 0.85rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .map-controls input[type="range"] {
+            width: 100%;
+        }
+
+        .toggle-map-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 999;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .toggle-map-btn:hover {
+            background: #c0392b;
+        }
+
+        .coord-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 10000;
+            white-space: nowrap;
+            display: none;
+            border: 1px solid #3498db;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .coord-tooltip.visible {
+            display: block;
+        }
+
+        .coord-tooltip .coord-line {
+            margin: 2px 0;
+        }
+
+        .coord-tooltip .coord-label {
+            color: #3498db;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -299,6 +422,24 @@
         <p>Longitud: <span class="highlight" id="lng-status">-</span></p>
         <p>Àrees possibles: <span class="highlight" id="areas-count">0</span></p>
         <p>Precisió: <span class="highlight" id="precision-status">-</span></p>
+    </div>
+
+    <button class="toggle-map-btn" id="toggle-map-btn">🗺️ Mapa del Tresor</button>
+
+    <div class="treasure-map-overlay" id="treasure-map-overlay">
+        <img src="/image.png" alt="Mapa del tresor" id="treasure-img">
+        <div class="resize-handle" id="resize-handle"></div>
+    </div>
+
+    <div class="map-controls" id="map-controls">
+        <label>Opacitat: <span id="opacity-value">0.7</span></label>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.1" value="0.7">
+        <button id="close-overlay-btn">Tancar Overlay</button>
+    </div>
+
+    <div class="coord-tooltip" id="coord-tooltip">
+        <div class="coord-line"><span class="coord-label">Lat:</span> <span id="tooltip-lat">-</span></div>
+        <div class="coord-line"><span class="coord-label">Lng:</span> <span id="tooltip-lng">-</span></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
