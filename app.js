@@ -906,7 +906,10 @@ const treasureImg = document.getElementById('treasure-img');
 
 let isDragging = false;
 let isResizing = false;
+let isRotating = false;
 let startX, startY, startLeft, startTop, startWidth, startHeight;
+let currentRotation = 0;
+let startAngle = 0;
 
 if (toggleMapBtn && treasureOverlay) {
     // Posición y tamaño inicial
@@ -948,16 +951,24 @@ if (toggleMapBtn && treasureOverlay) {
         });
     }
 
+    // Función para calcular el ángulo desde el centro
+    function getAngle(centerX, centerY, pointX, pointY) {
+        const dx = pointX - centerX;
+        const dy = pointY - centerY;
+        return Math.atan2(dy, dx) * (180 / Math.PI);
+    }
+
     // Drag functionality
     treasureOverlay.addEventListener('mousedown', (e) => {
         if (e.target === resizeHandle) return;
+        if (e.target.classList.contains('rotate-handle')) return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         const rect = treasureOverlay.getBoundingClientRect();
         startLeft = rect.left;
         startTop = rect.top;
-        treasureOverlay.style.transform = 'none';
+        treasureOverlay.style.transform = `rotate(${currentRotation}deg)`;
         e.preventDefault();
     });
 
@@ -975,6 +986,20 @@ if (toggleMapBtn && treasureOverlay) {
         });
     }
 
+    // Rotate functionality
+    const rotateHandles = document.querySelectorAll('.rotate-handle');
+    rotateHandles.forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+            isRotating = true;
+            const rect = treasureOverlay.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            startAngle = getAngle(centerX, centerY, e.clientX, e.clientY) - currentRotation;
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    });
+
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
             const dx = e.clientX - startX;
@@ -987,12 +1012,20 @@ if (toggleMapBtn && treasureOverlay) {
             const newSize = Math.max(100, Math.max(startWidth + dx, startHeight + dy));
             treasureOverlay.style.width = newSize + 'px';
             treasureOverlay.style.height = newSize + 'px';
+        } else if (isRotating) {
+            const rect = treasureOverlay.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const angle = getAngle(centerX, centerY, e.clientX, e.clientY);
+            currentRotation = angle - startAngle;
+            treasureOverlay.style.transform = `rotate(${currentRotation}deg)`;
         }
     });
 
     document.addEventListener('mouseup', () => {
         isDragging = false;
         isResizing = false;
+        isRotating = false;
     });
 }
 

@@ -257,6 +257,36 @@
             z-index: 501;
         }
 
+        .rotate-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #3498db;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 501;
+        }
+
+        .rotate-handle:active {
+            cursor: grabbing;
+        }
+
+        .rotate-handle.top-left {
+            top: -10px;
+            left: -10px;
+        }
+
+        .rotate-handle.top-right {
+            top: -10px;
+            right: -10px;
+        }
+
+        .rotate-handle.bottom-left {
+            bottom: -10px;
+            left: -10px;
+        }
+
         .map-controls {
             position: absolute;
             bottom: 10px;
@@ -429,6 +459,9 @@
 
     <div class="treasure-map-overlay" id="treasure-map-overlay">
         <img src="/joc-del-tresor/image.png" alt="Mapa del tresor" id="treasure-img">
+        <div class="rotate-handle top-left" id="rotate-handle-tl"></div>
+        <div class="rotate-handle top-right" id="rotate-handle-tr"></div>
+        <div class="rotate-handle bottom-left" id="rotate-handle-bl"></div>
         <div class="resize-handle" id="resize-handle"></div>
     </div>
 
