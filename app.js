@@ -26,6 +26,14 @@ const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/
     maxNativeZoom: 19
 });
 
+// Capa de carreteres (OpenStreetMap amb estil optimitzat per carreteres)
+// Utilitzem Carto Light només amb carreteres, que destaca la xarxa viària
+const roadsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    maxZoom: 30,
+    maxNativeZoom: 19
+});
+
 // Renderer de canvas compartit: a diferència de l'SVG per defecte, no té problemes de
 // precisió numèrica quan es fa zoom molt profund (imprescindible amb maxZoom: 30).
 const sharedCanvasRenderer = L.canvas({ padding: 0.5 });
@@ -60,6 +68,7 @@ const digitInputs = document.querySelectorAll('.digit-input');
 const clearBtn = document.getElementById('clear-btn');
 const fineToggle = document.getElementById('fine-toggle');
 const satelliteToggle = document.getElementById('satellite-toggle');
+const roadsToggle = document.getElementById('roads-toggle');
 
 // Capa de "coordenada fina" (els quadradets vermells de precisió): desactivada per defecte.
 let fineLayerEnabled = false;
@@ -76,11 +85,37 @@ if (satelliteToggle) {
     satelliteToggle.checked = false;
     satelliteToggle.addEventListener('change', () => {
         if (satelliteToggle.checked) {
+            // Desactivar vista carreteres si està activa
+            if (roadsToggle && roadsToggle.checked) {
+                roadsToggle.checked = false;
+                map.removeLayer(roadsLayer);
+            }
             map.removeLayer(osmLayer);
             map.addLayer(satelliteLayer);
             satelliteLayer.bringToBack();
         } else {
             map.removeLayer(satelliteLayer);
+            map.addLayer(osmLayer);
+            osmLayer.bringToBack();
+        }
+    });
+}
+
+// Vista carreteres: desactivada per defecte
+if (roadsToggle) {
+    roadsToggle.checked = false;
+    roadsToggle.addEventListener('change', () => {
+        if (roadsToggle.checked) {
+            // Desactivar vista satèl·lit si està activa
+            if (satelliteToggle && satelliteToggle.checked) {
+                satelliteToggle.checked = false;
+                map.removeLayer(satelliteLayer);
+            }
+            map.removeLayer(osmLayer);
+            map.addLayer(roadsLayer);
+            roadsLayer.bringToBack();
+        } else {
+            map.removeLayer(roadsLayer);
             map.addLayer(osmLayer);
             osmLayer.bringToBack();
         }
