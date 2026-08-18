@@ -34,6 +34,14 @@ const roadsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/
     maxNativeZoom: 19
 });
 
+// Capa topogràfica amb boscos destacats (OpenTopoMap)
+// Mostra clarament zones forestals en verd, així com relleu i característiques naturals
+const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)',
+    maxZoom: 30,
+    maxNativeZoom: 17
+});
+
 // Renderer de canvas compartit: a diferència de l'SVG per defecte, no té problemes de
 // precisió numèrica quan es fa zoom molt profund (imprescindible amb maxZoom: 30).
 const sharedCanvasRenderer = L.canvas({ padding: 0.5 });
@@ -69,6 +77,7 @@ const clearBtn = document.getElementById('clear-btn');
 const fineToggle = document.getElementById('fine-toggle');
 const satelliteToggle = document.getElementById('satellite-toggle');
 const roadsToggle = document.getElementById('roads-toggle');
+const topoToggle = document.getElementById('topo-toggle');
 
 // Capa de "coordenada fina" (els quadradets vermells de precisió): desactivada per defecte.
 let fineLayerEnabled = false;
@@ -85,10 +94,14 @@ if (satelliteToggle) {
     satelliteToggle.checked = false;
     satelliteToggle.addEventListener('change', () => {
         if (satelliteToggle.checked) {
-            // Desactivar vista carreteres si està activa
+            // Desactivar altres vistes si estan actives
             if (roadsToggle && roadsToggle.checked) {
                 roadsToggle.checked = false;
                 map.removeLayer(roadsLayer);
+            }
+            if (topoToggle && topoToggle.checked) {
+                topoToggle.checked = false;
+                map.removeLayer(topoLayer);
             }
             map.removeLayer(osmLayer);
             map.addLayer(satelliteLayer);
@@ -106,16 +119,45 @@ if (roadsToggle) {
     roadsToggle.checked = false;
     roadsToggle.addEventListener('change', () => {
         if (roadsToggle.checked) {
-            // Desactivar vista satèl·lit si està activa
+            // Desactivar altres vistes si estan actives
             if (satelliteToggle && satelliteToggle.checked) {
                 satelliteToggle.checked = false;
                 map.removeLayer(satelliteLayer);
+            }
+            if (topoToggle && topoToggle.checked) {
+                topoToggle.checked = false;
+                map.removeLayer(topoLayer);
             }
             map.removeLayer(osmLayer);
             map.addLayer(roadsLayer);
             roadsLayer.bringToBack();
         } else {
             map.removeLayer(roadsLayer);
+            map.addLayer(osmLayer);
+            osmLayer.bringToBack();
+        }
+    });
+}
+
+// Vista topogràfica amb boscos: desactivada per defecte
+if (topoToggle) {
+    topoToggle.checked = false;
+    topoToggle.addEventListener('change', () => {
+        if (topoToggle.checked) {
+            // Desactivar altres vistes si estan actives
+            if (satelliteToggle && satelliteToggle.checked) {
+                satelliteToggle.checked = false;
+                map.removeLayer(satelliteLayer);
+            }
+            if (roadsToggle && roadsToggle.checked) {
+                roadsToggle.checked = false;
+                map.removeLayer(roadsLayer);
+            }
+            map.removeLayer(osmLayer);
+            map.addLayer(topoLayer);
+            topoLayer.bringToBack();
+        } else {
+            map.removeLayer(topoLayer);
             map.addLayer(osmLayer);
             osmLayer.bringToBack();
         }
