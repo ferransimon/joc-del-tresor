@@ -910,7 +910,8 @@ let isRotating = false;
 let startX, startY, startLeft, startTop, startWidth, startHeight;
 let currentRotation = 0;
 let startAngle = 0;
-let isFlipped = false;
+let isFlippedH = false;
+let isFlippedV = false;
 
 if (toggleMapBtn && treasureOverlay) {
     // Posición y tamaño inicial
@@ -961,15 +962,16 @@ if (toggleMapBtn && treasureOverlay) {
 
     // Función para actualizar el transform completo
     function updateTransform() {
-        const flipScale = isFlipped ? 'scaleX(-1)' : '';
-        treasureImg.style.transform = `rotate(${currentRotation}deg) ${flipScale}`;
+        const scaleX = isFlippedH ? -1 : 1;
+        const scaleY = isFlippedV ? -1 : 1;
+        treasureImg.style.transform = `rotate(${currentRotation}deg) scale(${scaleX}, ${scaleY})`;
     }
 
     // Drag functionality
     treasureOverlay.addEventListener('mousedown', (e) => {
         if (e.target === resizeHandle) return;
         if (e.target.classList.contains('rotate-handle')) return;
-        if (e.target.id === 'flip-button') return;
+        if (e.target.classList.contains('flip-button')) return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -1036,10 +1038,20 @@ if (toggleMapBtn && treasureOverlay) {
     });
 
     // Flip functionality
-    const flipButton = document.getElementById('flip-button');
-    if (flipButton) {
-        flipButton.addEventListener('click', (e) => {
-            isFlipped = !isFlipped;
+    const flipButtonH = document.getElementById('flip-button-h');
+    const flipButtonV = document.getElementById('flip-button-v');
+
+    if (flipButtonH) {
+        flipButtonH.addEventListener('click', (e) => {
+            isFlippedH = !isFlippedH;
+            updateTransform();
+            e.stopPropagation();
+        });
+    }
+
+    if (flipButtonV) {
+        flipButtonV.addEventListener('click', (e) => {
+            isFlippedV = !isFlippedV;
             updateTransform();
             e.stopPropagation();
         });

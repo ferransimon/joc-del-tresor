@@ -317,6 +317,23 @@
             transform: translate(-50%, -50%) scale(0.95);
         }
 
+        .flip-button.horizontal {
+            left: calc(50% - 25px);
+        }
+
+        .flip-button.vertical {
+            left: calc(50% + 25px);
+            background: #f39c12;
+        }
+
+        .flip-button.vertical:hover {
+            background: #d68910;
+        }
+
+        .flip-button.vertical:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
         .map-controls {
             position: absolute;
             bottom: 10px;
@@ -493,7 +510,8 @@
         <div class="rotate-handle top-right" id="rotate-handle-tr"></div>
         <div class="rotate-handle bottom-left" id="rotate-handle-bl"></div>
         <div class="resize-handle" id="resize-handle"></div>
-        <div class="flip-button" id="flip-button" title="Invertir com un mirall">⇆</div>
+        <div class="flip-button horizontal" id="flip-button-h" title="Invertir horitzontalment">⇆</div>
+        <div class="flip-button vertical" id="flip-button-v" title="Invertir verticalment">⇅</div>
     </div>
 
     <div class="map-controls" id="map-controls">
