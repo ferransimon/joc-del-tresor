@@ -423,6 +423,103 @@
             color: #3498db;
             font-weight: bold;
         }
+
+        .location-permission-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3498db;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .location-permission-banner.visible {
+            display: flex;
+        }
+
+        .location-permission-banner h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .location-permission-banner p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .location-permission-banner .buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .location-permission-banner button {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .location-permission-banner button.secondary {
+            background: #95a5a6;
+        }
+
+        .location-permission-banner button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .location-status {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .location-status.visible {
+            display: block;
+        }
+
+        .location-status .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .location-status .status-indicator.active {
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        .location-status .status-indicator.inactive {
+            background: #95a5a6;
+        }
+
+        .location-status .status-indicator.error {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
     </style>
 </head>
 <body>
@@ -523,6 +620,20 @@
     <div class="coord-tooltip" id="coord-tooltip">
         <div class="coord-line"><span class="coord-label">Lat:</span> <span id="tooltip-lat">-</span></div>
         <div class="coord-line"><span class="coord-label">Lng:</span> <span id="tooltip-lng">-</span></div>
+    </div>
+
+    <div class="location-permission-banner" id="location-banner">
+        <h3>📍 Ubicació en temps real</h3>
+        <p>Vols activar la teva ubicació en temps real per veure on ets al mapa?</p>
+        <div class="buttons">
+            <button id="allow-location">Activar</button>
+            <button id="deny-location" class="secondary">Més tard</button>
+        </div>
+    </div>
+
+    <div class="location-status" id="location-status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span id="status-text">Sense ubicació</span>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

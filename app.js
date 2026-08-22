@@ -862,6 +862,165 @@ function drawArea(area) {
 // Inicializar el estado
 updateStatus();
 
+// ===== GEOLOCALIZACIÓN EN TIEMPO REAL =====
+let userLocationMarker = null;
+let userAccuracyCircle = null;
+let watchId = null;
+
+const locationBanner = document.getElementById('location-banner');
+const locationStatus = document.getElementById('location-status');
+const statusIndicator = document.getElementById('status-indicator');
+const statusText = document.getElementById('status-text');
+const allowLocationBtn = document.getElementById('allow-location');
+const denyLocationBtn = document.getElementById('deny-location');
+
+// Mostrar banner de permisos al cargar
+if (locationBanner && 'geolocation' in navigator) {
+    setTimeout(() => {
+        locationBanner.classList.add('visible');
+    }, 1000);
+}
+
+function updateLocationStatus(status, message) {
+    if (!locationStatus || !statusIndicator || !statusText) return;
+
+    statusIndicator.className = `status-indicator ${status}`;
+    statusText.textContent = message;
+    locationStatus.classList.add('visible');
+}
+
+function startLocationTracking() {
+    if (!('geolocation' in navigator)) {
+        updateLocationStatus('error', 'Geolocalització no disponible');
+        return;
+    }
+
+    updateLocationStatus('active', 'Obtenint ubicació...');
+
+    const options = {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+    };
+
+    watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            // Actualizar o crear el marcador
+            if (userLocationMarker) {
+                userLocationMarker.setLatLng([lat, lng]);
+            } else {
+                // Crear marcador de usuario con icono personalizado
+                const userIcon = L.divIcon({
+                    className: 'user-location-icon',
+                    html: '<div style="width: 20px; height: 20px; background: #3498db; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                userLocationMarker = L.marker([lat, lng], {
+                    icon: userIcon,
+                    zIndexOffset: 1000
+                }).addTo(map);
+
+                userLocationMarker.bindPopup(`
+                    <strong>📍 La teva ubicació</strong><br>
+                    Lat: ${lat.toFixed(6)}<br>
+                    Lng: ${lng.toFixed(6)}<br>
+                    Precisió: ${accuracy.toFixed(0)}m
+                `);
+            }
+
+            // Actualizar o crear círculo de precisión
+            if (userAccuracyCircle) {
+                userAccuracyCircle.setLatLng([lat, lng]);
+                userAccuracyCircle.setRadius(accuracy);
+            } else {
+                userAccuracyCircle = L.circle([lat, lng], {
+                    radius: accuracy,
+                    color: '#3498db',
+                    fillColor: '#3498db',
+                    fillOpacity: 0.1,
+                    weight: 2
+                }).addTo(map);
+            }
+
+            updateLocationStatus('active', `📍 Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
+        },
+        (error) => {
+            let errorMessage = 'Error desconegut';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Permís denegat';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Ubicació no disponible';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Temps esgotat';
+                    break;
+            }
+            updateLocationStatus('error', errorMessage);
+        },
+        options
+    );
+}
+
+function stopLocationTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+        userLocationMarker = null;
+    }
+
+    if (userAccuracyCircle) {
+        map.removeLayer(userAccuracyCircle);
+        userAccuracyCircle = null;
+    }
+
+    updateLocationStatus('inactive', 'Ubicació desactivada');
+    setTimeout(() => {
+        if (locationStatus) locationStatus.classList.remove('visible');
+    }, 3000);
+}
+
+// Event listeners para los botones
+if (allowLocationBtn) {
+    allowLocationBtn.addEventListener('click', () => {
+        locationBanner.classList.remove('visible');
+        startLocationTracking();
+    });
+}
+
+if (denyLocationBtn) {
+    denyLocationBtn.addEventListener('click', () => {
+        locationBanner.classList.remove('visible');
+        updateLocationStatus('inactive', 'Ubicació no activada');
+        setTimeout(() => {
+            if (locationStatus) locationStatus.classList.remove('visible');
+        }, 3000);
+    });
+}
+
+// Permitir activar/desactivar haciendo clic en el status
+if (locationStatus) {
+    locationStatus.addEventListener('click', () => {
+        if (watchId !== null) {
+            stopLocationTracking();
+        } else {
+            startLocationTracking();
+        }
+    });
+    locationStatus.style.cursor = 'pointer';
+}
+
 // Valors per defecte: evita haver de reintroduir-los cada vegada.
 // Per canviar-los, edita aquests dos arrays (posa '' a les posicions desconegudes).
 const DEFAULT_LAT_DIGITS = ['4', '1', '8', '', '', '0', '5', '3'];
