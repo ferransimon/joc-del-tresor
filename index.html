@@ -24,6 +24,40 @@
             color: white;
             padding: 1rem 2rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .header.hidden-mobile {
+            transform: translateY(-100%);
+        }
+
+        .toggle-panel-btn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 24px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-panel-btn:hover {
+            background: #34495e;
+            transform: scale(1.05);
+        }
+
+        .toggle-panel-btn:active {
+            transform: scale(0.95);
         }
 
         .header h1 {
@@ -520,6 +554,275 @@
                 opacity: 0.5;
             }
         }
+
+        /* ===== RESPONSIVE MÓVIL ===== */
+        @media (max-width: 768px) {
+            .toggle-panel-btn {
+                display: flex;
+            }
+
+            .header {
+                padding: 0.75rem 1rem;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1100;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+
+            #map {
+                margin-top: 0;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .controls {
+                gap: 1rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .coord-group {
+                width: 100%;
+            }
+
+            .coord-group label {
+                font-size: 0.85rem;
+            }
+
+            .coord-inputs {
+                gap: 0.2rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .digit-input {
+                width: 35px;
+                height: 35px;
+                font-size: 1.2rem;
+            }
+
+            .decimal-point {
+                font-size: 1.2rem;
+                margin: 0 0.1rem;
+            }
+
+            .coord-inputs span {
+                font-size: 0.8rem;
+            }
+
+            button {
+                width: 100%;
+                padding: 0.6rem;
+                font-size: 0.95rem;
+            }
+
+            .toggle-group {
+                width: 100%;
+                justify-content: space-between;
+                padding: 0.5rem;
+                background: rgba(255,255,255,0.1);
+                border-radius: 4px;
+            }
+
+            .info {
+                font-size: 0.85rem;
+                text-align: center;
+            }
+
+            .toggle-map-btn {
+                bottom: auto;
+                top: 10px;
+                right: 10px;
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .map-controls {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .map-controls label {
+                font-size: 0.8rem;
+            }
+
+            .map-controls button {
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .treasure-map-overlay {
+                width: 90% !important;
+                height: auto !important;
+                aspect-ratio: 1;
+                max-width: 350px;
+                max-height: 350px;
+            }
+
+            .treasure-map-overlay.active {
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+            }
+
+            .resize-handle,
+            .rotate-handle {
+                width: 30px;
+                height: 30px;
+                border-width: 3px;
+            }
+
+            .resize-handle {
+                bottom: -15px;
+                right: -15px;
+            }
+
+            .rotate-handle.top-left {
+                top: -15px;
+                left: -15px;
+            }
+
+            .rotate-handle.top-right {
+                top: -15px;
+                right: -15px;
+            }
+
+            .rotate-handle.bottom-left {
+                bottom: -15px;
+                left: -15px;
+            }
+
+            .flip-button {
+                width: 45px;
+                height: 45px;
+                font-size: 22px;
+            }
+
+            .flip-button.horizontal {
+                left: calc(50% - 30px);
+            }
+
+            .flip-button.vertical {
+                left: calc(50% + 30px);
+            }
+
+            .location-permission-banner {
+                max-width: 90%;
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .location-permission-banner h3 {
+                font-size: 0.9rem;
+            }
+
+            .location-permission-banner p {
+                font-size: 0.8rem;
+            }
+
+            .location-status {
+                top: 10px;
+                left: 10px;
+                font-size: 0.75rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            .coord-tooltip {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            .status {
+                top: 10px;
+                right: 10px;
+                max-width: 200px;
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .status h3 {
+                font-size: 0.9rem;
+            }
+
+            .status p {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Pantallas muy pequeñas (móviles en vertical) */
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .digit-input {
+                width: 30px;
+                height: 30px;
+                font-size: 1rem;
+            }
+
+            .decimal-point {
+                font-size: 1rem;
+            }
+
+            .coord-group label {
+                font-size: 0.75rem;
+            }
+
+            .info {
+                font-size: 0.75rem;
+                padding: 0.4rem;
+            }
+
+            .treasure-map-overlay {
+                max-width: 280px;
+                max-height: 280px;
+            }
+
+            .flip-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .flip-button.horizontal {
+                left: calc(50% - 25px);
+            }
+
+            .flip-button.vertical {
+                left: calc(50% + 25px);
+            }
+        }
+
+        /* Ajustes para touch en móviles */
+        @media (hover: none) and (pointer: coarse) {
+            .digit-input {
+                font-size: 16px; /* Evita el zoom automático en iOS */
+            }
+
+            .resize-handle,
+            .rotate-handle,
+            .flip-button {
+                touch-action: none;
+            }
+
+            .treasure-map-overlay {
+                touch-action: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -635,6 +938,10 @@
         <span class="status-indicator" id="status-indicator"></span>
         <span id="status-text">Sense ubicació</span>
     </div>
+
+    <button class="toggle-panel-btn" id="toggle-panel-btn" title="Mostrar/Ocultar opcions">
+        ⚙️
+    </button>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js?v=20260817"></script>

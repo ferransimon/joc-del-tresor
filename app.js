@@ -1021,6 +1021,36 @@ if (locationStatus) {
     locationStatus.style.cursor = 'pointer';
 }
 
+// ===== TOGGLE PANEL EN MÓVIL =====
+const togglePanelBtn = document.getElementById('toggle-panel-btn');
+const header = document.querySelector('.header');
+let isPanelVisible = true;
+
+if (togglePanelBtn && header) {
+    // Inicialmente el panel está visible
+    togglePanelBtn.addEventListener('click', () => {
+        isPanelVisible = !isPanelVisible;
+
+        if (isPanelVisible) {
+            header.classList.remove('hidden-mobile');
+            togglePanelBtn.textContent = '⚙️';
+            togglePanelBtn.title = 'Ocultar opcions';
+        } else {
+            header.classList.add('hidden-mobile');
+            togglePanelBtn.textContent = '📋';
+            togglePanelBtn.title = 'Mostrar opcions';
+        }
+    });
+
+    // En desktop, asegurar que el panel siempre está visible
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            header.classList.remove('hidden-mobile');
+            isPanelVisible = true;
+        }
+    });
+}
+
 // Valors per defecte: evita haver de reintroduir-los cada vegada.
 // Per canviar-los, edita aquests dos arrays (posa '' a les posicions desconegudes).
 const DEFAULT_LAT_DIGITS = ['4', '1', '8', '', '', '0', '5', '3'];
@@ -1119,6 +1149,14 @@ if (toggleMapBtn && treasureOverlay) {
         return Math.atan2(dy, dx) * (180 / Math.PI);
     }
 
+    // Función para obtener las coordenadas del evento (mouse o touch)
+    function getEventCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+    }
+
     // Función para actualizar el transform completo
     function updateTransform() {
         const scaleX = isFlippedH ? -1 : 1;
@@ -1126,7 +1164,7 @@ if (toggleMapBtn && treasureOverlay) {
         treasureImg.style.transform = `rotate(${currentRotation}deg) scale(${scaleX}, ${scaleY})`;
     }
 
-    // Drag functionality
+    // Drag functionality - Mouse
     treasureOverlay.addEventListener('mousedown', (e) => {
         if (e.target === resizeHandle) return;
         if (e.target.classList.contains('rotate-handle')) return;
@@ -1140,7 +1178,22 @@ if (toggleMapBtn && treasureOverlay) {
         e.preventDefault();
     });
 
-    // Resize functionality
+    // Drag functionality - Touch
+    treasureOverlay.addEventListener('touchstart', (e) => {
+        if (e.target === resizeHandle) return;
+        if (e.target.classList.contains('rotate-handle')) return;
+        if (e.target.classList.contains('flip-button')) return;
+        isDragging = true;
+        const coords = getEventCoords(e);
+        startX = coords.x;
+        startY = coords.y;
+        const rect = treasureOverlay.getBoundingClientRect();
+        startLeft = rect.left;
+        startTop = rect.top;
+        e.preventDefault();
+    });
+
+    // Resize functionality - Mouse
     if (resizeHandle) {
         resizeHandle.addEventListener('mousedown', (e) => {
             isResizing = true;
@@ -1152,9 +1205,21 @@ if (toggleMapBtn && treasureOverlay) {
             e.stopPropagation();
             e.preventDefault();
         });
+
+        resizeHandle.addEventListener('touchstart', (e) => {
+            isResizing = true;
+            const coords = getEventCoords(e);
+            startX = coords.x;
+            startY = coords.y;
+            const rect = treasureOverlay.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            e.stopPropagation();
+            e.preventDefault();
+        });
     }
 
-    // Rotate functionality
+    // Rotate functionality - Mouse
     const rotateHandles = document.querySelectorAll('.rotate-handle');
     rotateHandles.forEach(handle => {
         handle.addEventListener('mousedown', (e) => {
@@ -1163,6 +1228,17 @@ if (toggleMapBtn && treasureOverlay) {
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
             startAngle = getAngle(centerX, centerY, e.clientX, e.clientY) - currentRotation;
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        handle.addEventListener('touchstart', (e) => {
+            isRotating = true;
+            const rect = treasureOverlay.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const coords = getEventCoords(e);
+            startAngle = getAngle(centerX, centerY, coords.x, coords.y) - currentRotation;
             e.stopPropagation();
             e.preventDefault();
         });
@@ -1190,7 +1266,39 @@ if (toggleMapBtn && treasureOverlay) {
         }
     });
 
+    document.addEventListener('touchmove', (e) => {
+        const coords = getEventCoords(e);
+        if (isDragging) {
+            const dx = coords.x - startX;
+            const dy = coords.y - startY;
+            treasureOverlay.style.left = (startLeft + dx) + 'px';
+            treasureOverlay.style.top = (startTop + dy) + 'px';
+        } else if (isResizing) {
+            const dx = coords.x - startX;
+            const dy = coords.y - startY;
+            const newSize = Math.max(100, Math.max(startWidth + dx, startHeight + dy));
+            treasureOverlay.style.width = newSize + 'px';
+            treasureOverlay.style.height = newSize + 'px';
+        } else if (isRotating) {
+            const rect = treasureOverlay.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const angle = getAngle(centerX, centerY, coords.x, coords.y);
+            currentRotation = angle - startAngle;
+            updateTransform();
+        }
+        if (isDragging || isResizing || isRotating) {
+            e.preventDefault();
+        }
+    });
+
     document.addEventListener('mouseup', () => {
+        isDragging = false;
+        isResizing = false;
+        isRotating = false;
+    });
+
+    document.addEventListener('touchend', () => {
         isDragging = false;
         isResizing = false;
         isRotating = false;
