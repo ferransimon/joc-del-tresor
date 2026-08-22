@@ -287,6 +287,36 @@
             left: -10px;
         }
 
+        .flip-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: #27ae60;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 502;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        .flip-button:hover {
+            background: #229954;
+        }
+
+        .flip-button:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
         .map-controls {
             position: absolute;
             bottom: 10px;
@@ -458,11 +488,12 @@
     <button class="toggle-map-btn" id="toggle-map-btn">🗺️ Mapa del Tresor</button>
 
     <div class="treasure-map-overlay" id="treasure-map-overlay">
-        <img src="/joc-del-tresor/image.png" alt="Mapa del tresor" id="treasure-img">
+        <img src="/image.png" alt="Mapa del tresor" id="treasure-img">
         <div class="rotate-handle top-left" id="rotate-handle-tl"></div>
         <div class="rotate-handle top-right" id="rotate-handle-tr"></div>
         <div class="rotate-handle bottom-left" id="rotate-handle-bl"></div>
         <div class="resize-handle" id="resize-handle"></div>
+        <div class="flip-button" id="flip-button" title="Invertir com un mirall">⇆</div>
     </div>
 
     <div class="map-controls" id="map-controls">

@@ -910,6 +910,7 @@ let isRotating = false;
 let startX, startY, startLeft, startTop, startWidth, startHeight;
 let currentRotation = 0;
 let startAngle = 0;
+let isFlipped = false;
 
 if (toggleMapBtn && treasureOverlay) {
     // Posición y tamaño inicial
@@ -958,17 +959,23 @@ if (toggleMapBtn && treasureOverlay) {
         return Math.atan2(dy, dx) * (180 / Math.PI);
     }
 
+    // Función para actualizar el transform completo
+    function updateTransform() {
+        const flipScale = isFlipped ? 'scaleX(-1)' : '';
+        treasureImg.style.transform = `rotate(${currentRotation}deg) ${flipScale}`;
+    }
+
     // Drag functionality
     treasureOverlay.addEventListener('mousedown', (e) => {
         if (e.target === resizeHandle) return;
         if (e.target.classList.contains('rotate-handle')) return;
+        if (e.target.id === 'flip-button') return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         const rect = treasureOverlay.getBoundingClientRect();
         startLeft = rect.left;
         startTop = rect.top;
-        treasureOverlay.style.transform = `rotate(${currentRotation}deg)`;
         e.preventDefault();
     });
 
@@ -1018,7 +1025,7 @@ if (toggleMapBtn && treasureOverlay) {
             const centerY = rect.top + rect.height / 2;
             const angle = getAngle(centerX, centerY, e.clientX, e.clientY);
             currentRotation = angle - startAngle;
-            treasureOverlay.style.transform = `rotate(${currentRotation}deg)`;
+            updateTransform();
         }
     });
 
@@ -1027,6 +1034,16 @@ if (toggleMapBtn && treasureOverlay) {
         isResizing = false;
         isRotating = false;
     });
+
+    // Flip functionality
+    const flipButton = document.getElementById('flip-button');
+    if (flipButton) {
+        flipButton.addEventListener('click', (e) => {
+            isFlipped = !isFlipped;
+            updateTransform();
+            e.stopPropagation();
+        });
+    }
 }
 
 // Tooltip de coordenadas
