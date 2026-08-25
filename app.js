@@ -1053,8 +1053,8 @@ if (togglePanelBtn && header) {
 
 // Valors per defecte: evita haver de reintroduir-los cada vegada.
 // Per canviar-los, edita aquests dos arrays (posa '' a les posicions desconegudes).
-const DEFAULT_LAT_DIGITS = ['4', '1', '8', '', '', '0', '5', '3'];
-const DEFAULT_LNG_DIGITS = ['0', '1', '', '', '', '3', '6', '9'];
+const DEFAULT_LAT_DIGITS = ['4', '1', '', '', '1', '8', '4', '5'];
+const DEFAULT_LNG_DIGITS = ['0', '1', '', '', '6', '0', '1', '7'];
 
 function setDefaultValues() {
     DEFAULT_LAT_DIGITS.forEach((digit, index) => {
