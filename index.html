@@ -228,6 +228,11 @@
             font-size: 0.9rem;
         }
 
+        .admin-bounds-tooltip {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+        }
+
         .status {
             display: none;
             position: absolute;
@@ -888,6 +893,20 @@
                 </label>
                 <label for="topo-toggle" class="toggle-label">Vista boscos</label>
             </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="comarques-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="comarques-toggle" class="toggle-label">Límits comarques</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="municipis-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="municipis-toggle" class="toggle-label">Límits municipis</label>
+            </div>
             <div class="info">
                 🔍 Joc del Tresor: Completa els dígits que coneguis i descobreix les zones possibles
             </div>
@@ -944,6 +963,7 @@
     </button>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
     <script src="app.js?v=20260817"></script>
 </body>
 </html>
