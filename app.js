@@ -163,6 +163,102 @@ if (topoToggle) {
         }
     });
 }
+// ============================================================
+// Capa de límits administratius (comarques i municipis)
+// ============================================================
+// És independent del mapa base: es dibuixa com a contorns sense
+// farciment (fillOpacity 0) en un pane propi per sobre de qualsevol
+// tessel·la (OSM, satèl·lit, carreteres o topogràfic), de manera que
+// es pot activar/desactivar amb el mapa base que es vulgui.
+//
+// Dades: Institut Cartogràfic Nacional (2025), publicades en obert al
+// repositori https://github.com/ArnauInes/geometries_cat_bcn_2024
+// Es descarreguen en format TopoJSON (més lleuger) i es converteixen
+// a GeoJSON al navegador amb la llibreria topojson-client.
+const ADMIN_BOUNDARIES = {
+    comarques: {
+        url: 'https://raw.githubusercontent.com/ArnauInes/geometries_cat_bcn_2024/main/dts_comarques_cat_2025.json',
+        toggle: document.getElementById('comarques-toggle'),
+        nameProp: 'nom_comarca',
+        style: { color: '#8e44ad', weight: 2, opacity: 0.85, fillOpacity: 0, dashArray: null },
+        layer: null,      // L.geoJSON un cop carregada
+        loading: null      // Promise mentre es descarrega, per no duplicar peticions
+    },
+    municipis: {
+        url: 'https://raw.githubusercontent.com/ArnauInes/geometries_cat_bcn_2024/main/dts_municipis_cat_2025.json',
+        toggle: document.getElementById('municipis-toggle'),
+        nameProp: 'nom_municipi',
+        style: { color: '#16a085', weight: 1, opacity: 0.7, fillOpacity: 0, dashArray: '3,3' },
+        layer: null,
+        loading: null
+    }
+};
+
+// Pane dedicat: per sobre de les tessel·les de qualsevol mapa base (tilePane, z=200)
+// i de l'overlayPane (z=400), però per sota de l'englobant vermell (envelopePane, z=650)
+// i dels marcadors/quadradets (markerPane, z=600), perquè no tapin la part jugable del mapa.
+map.createPane('adminBoundsPane');
+map.getPane('adminBoundsPane').style.zIndex = 450;
+const adminBoundsRenderer = L.canvas({ pane: 'adminBoundsPane', padding: 0.5 });
+
+function loadAdminBoundary(key) {
+    const cfg = ADMIN_BOUNDARIES[key];
+    if (cfg.layer) return Promise.resolve(cfg.layer);
+    if (cfg.loading) return cfg.loading;
+
+    cfg.loading = fetch(cfg.url)
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        })
+        .then(topology => {
+            const objectName = Object.keys(topology.objects)[0];
+            const geojson = topojson.feature(topology, topology.objects[objectName]);
+            cfg.layer = L.geoJSON(geojson, {
+                pane: 'adminBoundsPane',
+                renderer: adminBoundsRenderer,
+                interactive: true,
+                style: cfg.style,
+                onEachFeature: (feature, lyr) => {
+                    const nom = feature.properties && feature.properties[cfg.nameProp];
+                    if (nom) lyr.bindTooltip(nom, { sticky: true, className: 'admin-bounds-tooltip' });
+                }
+            });
+            return cfg.layer;
+        })
+        .catch(err => {
+            cfg.loading = null;
+            throw err;
+        });
+
+    return cfg.loading;
+}
+
+Object.keys(ADMIN_BOUNDARIES).forEach(key => {
+    const cfg = ADMIN_BOUNDARIES[key];
+    if (!cfg.toggle) return;
+    cfg.toggle.checked = false;
+    cfg.toggle.addEventListener('change', () => {
+        if (cfg.toggle.checked) {
+            cfg.toggle.disabled = true;
+            loadAdminBoundary(key)
+                .then(layer => {
+                    layer.addTo(map);
+                })
+                .catch(err => {
+                    console.error(`No s'ha pogut carregar la capa de ${key}:`, err);
+                    alert(`No s'ha pogut carregar els límits de ${key}. Comprova la connexió a internet i torna-ho a provar.`);
+                    cfg.toggle.checked = false;
+                })
+                .finally(() => {
+                    cfg.toggle.disabled = false;
+                });
+        } else if (cfg.layer) {
+            map.removeLayer(cfg.layer);
+        }
+    });
+});
+
 const latStatus = document.getElementById('lat-status');
 const lngStatus = document.getElementById('lng-status');
 const areasCount = document.getElementById('areas-count');
