@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joc del Tresor - Catalunya</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .header.hidden-mobile {
+            transform: translateY(-100%);
+        }
+
+        .toggle-panel-btn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 24px;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-panel-btn:hover {
+            background: #34495e;
+            transform: scale(1.05);
+        }
+
+        .toggle-panel-btn:active {
+            transform: scale(0.95);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .coord-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .coord-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .coord-inputs {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
+        .digit-input {
+            width: 45px;
+            height: 45px;
+            padding: 0;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 1.5rem;
+            text-align: center;
+            background: white;
+            color: #2c3e50;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .digit-input::placeholder {
+            color: #bdc3c7;
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+
+        .digit-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            transform: scale(1.05);
+        }
+
+        .digit-input:focus::placeholder {
+            opacity: 0.3;
+        }
+
+        .digit-input.filled {
+            background: #d5f4e6;
+            border-color: #27ae60;
+        }
+
+        .decimal-point {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin: 0 0.2rem;
+        }
+
+        .coord-inputs span {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            margin-left: 0.3rem;
+        }
+
+        button {
+            padding: 0.5rem 1.5rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #c0392b;
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #5a6a7a;
+            border-radius: 26px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #e74c3c;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .info {
+            padding: 0.5rem;
+            background: #3498db;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        .leaflet-popup-content {
+            font-size: 0.9rem;
+        }
+
+        .admin-bounds-tooltip {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+        }
+
+        .status {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 250px;
+        }
+
+        .status h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .status p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin: 0.25rem 0;
+        }
+
+        .status .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .treasure-map-overlay {
+            position: absolute;
+            z-index: 500;
+            cursor: move;
+            user-select: none;
+            display: none;
+        }
+
+        .treasure-map-overlay.active {
+            display: block;
+        }
+
+        .treasure-map-overlay img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border: 2px solid #e74c3c;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #e74c3c;
+            border: 2px solid white;
+            border-radius: 50%;
+            bottom: -10px;
+            right: -10px;
+            cursor: nwse-resize;
+            z-index: 501;
+        }
+
+        .rotate-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #3498db;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 501;
+        }
+
+        .rotate-handle:active {
+            cursor: grabbing;
+        }
+
+        .rotate-handle.top-left {
+            top: -10px;
+            left: -10px;
+        }
+
+        .rotate-handle.top-right {
+            top: -10px;
+            right: -10px;
+        }
+
+        .rotate-handle.bottom-left {
+            bottom: -10px;
+            left: -10px;
+        }
+
+        .flip-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: #27ae60;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 502;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        .flip-button:hover {
+            background: #229954;
+        }
+
+        .flip-button:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        .flip-button.horizontal {
+            left: calc(50% - 25px);
+        }
+
+        .flip-button.vertical {
+            left: calc(50% + 25px);
+            background: #f39c12;
+        }
+
+        .flip-button.vertical:hover {
+            background: #d68910;
+        }
+
+        .flip-button.vertical:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        .map-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .map-controls.hidden {
+            display: none;
+        }
+
+        .map-controls button {
+            padding: 0.5rem 1rem;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .map-controls button:hover {
+            background: #c0392b;
+        }
+
+        .map-controls label {
+            font-size: 0.85rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .map-controls input[type="range"] {
+            width: 100%;
+        }
+
+        .toggle-map-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 999;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .toggle-map-btn:hover {
+            background: #c0392b;
+        }
+
+        .coord-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 10000;
+            white-space: nowrap;
+            display: none;
+            border: 1px solid #3498db;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .coord-tooltip.visible {
+            display: block;
+        }
+
+        .coord-tooltip .coord-line {
+            margin: 2px 0;
+        }
+
+        .coord-tooltip .coord-label {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .location-permission-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3498db;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .location-permission-banner.visible {
+            display: flex;
+        }
+
+        .location-permission-banner h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .location-permission-banner p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .location-permission-banner .buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .location-permission-banner button {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .location-permission-banner button.secondary {
+            background: #95a5a6;
+        }
+
+        .location-permission-banner button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .location-status {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .location-status.visible {
+            display: block;
+        }
+
+        .location-status .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .location-status .status-indicator.active {
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        .location-status .status-indicator.inactive {
+            background: #95a5a6;
+        }
+
+        .location-status .status-indicator.error {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* ===== RESPONSIVE MÓVIL ===== */
+        @media (max-width: 768px) {
+            .toggle-panel-btn {
+                display: flex;
+            }
+
+            .header {
+                padding: 0.75rem 1rem;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1100;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+
+            #map {
+                margin-top: 0;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .controls {
+                gap: 1rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .coord-group {
+                width: 100%;
+            }
+
+            .coord-group label {
+                font-size: 0.85rem;
+            }
+
+            .coord-inputs {
+                gap: 0.2rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .digit-input {
+                width: 35px;
+                height: 35px;
+                font-size: 1.2rem;
+            }
+
+            .decimal-point {
+                font-size: 1.2rem;
+                margin: 0 0.1rem;
+            }
+
+            .coord-inputs span {
+                font-size: 0.8rem;
+            }
+
+            button {
+                width: 100%;
+                padding: 0.6rem;
+                font-size: 0.95rem;
+            }
+
+            .toggle-group {
+                width: 100%;
+                justify-content: space-between;
+                padding: 0.5rem;
+                background: rgba(255,255,255,0.1);
+                border-radius: 4px;
+            }
+
+            .info {
+                font-size: 0.85rem;
+                text-align: center;
+            }
+
+            .toggle-map-btn {
+                bottom: auto;
+                top: 10px;
+                right: 10px;
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .map-controls {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .map-controls label {
+                font-size: 0.8rem;
+            }
+
+            .map-controls button {
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .treasure-map-overlay {
+                width: 90% !important;
+                height: auto !important;
+                aspect-ratio: 1;
+                max-width: 350px;
+                max-height: 350px;
+            }
+
+            .treasure-map-overlay.active {
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+            }
+
+            .resize-handle,
+            .rotate-handle {
+                width: 30px;
+                height: 30px;
+                border-width: 3px;
+            }
+
+            .resize-handle {
+                bottom: -15px;
+                right: -15px;
+            }
+
+            .rotate-handle.top-left {
+                top: -15px;
+                left: -15px;
+            }
+
+            .rotate-handle.top-right {
+                top: -15px;
+                right: -15px;
+            }
+
+            .rotate-handle.bottom-left {
+                bottom: -15px;
+                left: -15px;
+            }
+
+            .flip-button {
+                width: 45px;
+                height: 45px;
+                font-size: 22px;
+            }
+
+            .flip-button.horizontal {
+                left: calc(50% - 30px);
+            }
+
+            .flip-button.vertical {
+                left: calc(50% + 30px);
+            }
+
+            .location-permission-banner {
+                max-width: 90%;
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .location-permission-banner h3 {
+                font-size: 0.9rem;
+            }
+
+            .location-permission-banner p {
+                font-size: 0.8rem;
+            }
+
+            .location-status {
+                top: 10px;
+                left: 10px;
+                font-size: 0.75rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            .coord-tooltip {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            .status {
+                top: 10px;
+                right: 10px;
+                max-width: 200px;
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .status h3 {
+                font-size: 0.9rem;
+            }
+
+            .status p {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Pantallas muy pequeñas (móviles en vertical) */
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .digit-input {
+                width: 30px;
+                height: 30px;
+                font-size: 1rem;
+            }
+
+            .decimal-point {
+                font-size: 1rem;
+            }
+
+            .coord-group label {
+                font-size: 0.75rem;
+            }
+
+            .info {
+                font-size: 0.75rem;
+                padding: 0.4rem;
+            }
+
+            .treasure-map-overlay {
+                max-width: 280px;
+                max-height: 280px;
+            }
+
+            .flip-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .flip-button.horizontal {
+                left: calc(50% - 25px);
+            }
+
+            .flip-button.vertical {
+                left: calc(50% + 25px);
+            }
+        }
+
+        /* Ajustes para touch en móviles */
+        @media (hover: none) and (pointer: coarse) {
+            .digit-input {
+                font-size: 16px; /* Evita el zoom automático en iOS */
+            }
+
+            .resize-handle,
+            .rotate-handle,
+            .flip-button {
+                touch-action: none;
+            }
+
+            .treasure-map-overlay {
+                touch-action: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏴‍☠️ Joc del Tresor - Catalunya</h1>
+        <div class="controls">
+            <div class="coord-group">
+                <label>Latitud (4X.XXXXXX) - Catalunya</label>
+                <div class="coord-inputs">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="0" maxlength="1" inputmode="numeric" placeholder="4">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="1" maxlength="1" inputmode="numeric" placeholder="0-2">
+                    <span class="decimal-point">.</span>
+                    <input type="text" class="digit-input" data-coord="lat" data-index="2" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="3" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="4" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="5" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="6" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lat" data-index="7" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span>°N</span>
+                </div>
+            </div>
+            <div class="coord-group">
+                <label>Longitud (0-3X.XXXXXX) - Catalunya</label>
+                <div class="coord-inputs">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="0" maxlength="1" inputmode="numeric" placeholder="0-3">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="1" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span class="decimal-point">.</span>
+                    <input type="text" class="digit-input" data-coord="lng" data-index="2" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="3" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="4" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="5" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="6" maxlength="1" inputmode="numeric" placeholder="?">
+                    <input type="text" class="digit-input" data-coord="lng" data-index="7" maxlength="1" inputmode="numeric" placeholder="?">
+                    <span>°E</span>
+                </div>
+            </div>
+            <button id="clear-btn">Neteja</button>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="fine-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="fine-toggle" class="toggle-label">Coordenada fina</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="satellite-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="satellite-toggle" class="toggle-label">Vista satèl·lit</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="roads-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="roads-toggle" class="toggle-label">Vista carreteres</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="topo-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="topo-toggle" class="toggle-label">Vista boscos</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="comarques-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="comarques-toggle" class="toggle-label">Límits comarques</label>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="municipis-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="municipis-toggle" class="toggle-label">Límits municipis</label>
+            </div>
+            <div class="info">
+                🔍 Joc del Tresor: Completa els dígits que coneguis i descobreix les zones possibles
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div class="status">
+        <h3>Estat</h3>
+        <p>Latitud: <span class="highlight" id="lat-status">-</span></p>
+        <p>Longitud: <span class="highlight" id="lng-status">-</span></p>
+        <p>Àrees possibles: <span class="highlight" id="areas-count">0</span></p>
+        <p>Precisió: <span class="highlight" id="precision-status">-</span></p>
+    </div>
+
+    <button class="toggle-map-btn" id="toggle-map-btn">🗺️ Mapa del Tresor</button>
+
+    <div class="treasure-map-overlay" id="treasure-map-overlay">
+        <img src="/joc-del-tresor/image.png" alt="Mapa del tresor" id="treasure-img">
+        <div class="rotate-handle top-left" id="rotate-handle-tl"></div>
+        <div class="rotate-handle top-right" id="rotate-handle-tr"></div>
+        <div class="rotate-handle bottom-left" id="rotate-handle-bl"></div>
+        <div class="resize-handle" id="resize-handle"></div>
+        <div class="flip-button horizontal" id="flip-button-h" title="Invertir horitzontalment">⇆</div>
+        <div class="flip-button vertical" id="flip-button-v" title="Invertir verticalment">⇅</div>
+    </div>
+
+    <div class="map-controls" id="map-controls">
+        <label>Opacitat: <span id="opacity-value">0.7</span></label>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.1" value="0.7">
+        <button id="close-overlay-btn">Tancar Overlay</button>
+    </div>
+
+    <div class="coord-tooltip" id="coord-tooltip">
+        <div class="coord-line"><span class="coord-label">Lat:</span> <span id="tooltip-lat">-</span></div>
+        <div class="coord-line"><span class="coord-label">Lng:</span> <span id="tooltip-lng">-</span></div>
+    </div>
+
+    <div class="location-permission-banner" id="location-banner">
+        <h3>📍 Ubicació en temps real</h3>
+        <p>Vols activar la teva ubicació en temps real per veure on ets al mapa?</p>
+        <div class="buttons">
+            <button id="allow-location">Activar</button>
+            <button id="deny-location" class="secondary">Més tard</button>
+        </div>
+    </div>
+
+    <div class="location-status" id="location-status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span id="status-text">Sense ubicació</span>
+    </div>
+
+    <button class="toggle-panel-btn" id="toggle-panel-btn" title="Mostrar/Ocultar opcions">
+        ⚙️
+    </button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+    <script src="app.js?v=20260817"></script>
+</body>
+</html>
